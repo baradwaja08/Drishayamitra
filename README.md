@@ -281,10 +281,12 @@ output images:
 
 dashbaord.html
 
-<img width="1918" height="872" alt="image" src="https://github.com/user-attachments/assets/2ed77ad9-b02a-4e90-9fdc-aa9803b8707b" />
+<img width="1918" height="754" alt="image" src="https://github.com/user-attachments/assets/c891f3aa-bdba-44e1-a430-1d4453a8440a" />
+
 
 
 ---
 
 © 2026 Drishyamitra — Built with ❤️ by the Team
+
 
