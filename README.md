@@ -276,6 +276,15 @@ Verify Gmail App Password (not your main password). Make sure 2-Step Verificatio
 **Supabase connection error?**  
 Check your `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in config.py.
 
+
+output images:
+
+dashbaord.html
+
+<img width="1918" height="872" alt="image" src="https://github.com/user-attachments/assets/2ed77ad9-b02a-4e90-9fdc-aa9803b8707b" />
+
+
 ---
 
 © 2026 Drishyamitra — Built with ❤️ by the Team
+
