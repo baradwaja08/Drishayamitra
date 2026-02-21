@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Drishyamitra</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body">
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span style="font-size:1.5rem">👁️</span>
+    <span class="brand-name">Drishyamitra</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-item {% if not view or view=='dashboard' %}active{% endif %}"
+       href="{{ url_for('main.dashboard') }}">🏠 <span>Dashboard</span></a>
+    <a class="nav-item {% if view in ['persons','person_photos'] %}active{% endif %}"
+       href="{{ url_for('main.persons_page') }}">👥 <span>People &amp; Folders</span></a>
+    <a class="nav-item" href="{{ url_for('main.history') }}">📜 <span>Delivery History</span></a>
+    <a class="nav-item" href="{{ url_for('main.landing') }}">🌐 <span>Home Page</span></a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar-sm">{{ (user_name or 'U')[0]|upper }}</div>
+    <div>
+      <div class="user-name-sm">{{ user_name or 'User' }}</div>
+      <a class="logout-link" href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════════════════════ -->
+<div class="main-wrapper">
+  <header class="topbar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    <h1 class="page-title">
+      {%- if view == 'person_photos' and person -%}📁 {{ person.name }}
+      {%- elif view == 'persons' -%}👥 People &amp; Folders
+      {%- else -%}🏠 Dashboard{%- endif -%}
+    </h1>
+    <div class="topbar-actions">
+      <button class="btn-primary" onclick="openModal('uploadModal')">+ Upload</button>
+      <button class="btn-outline chat-toggle-btn" onclick="toggleChat()">💬 AI Assistant</button>
+    </div>
+  </header>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for cat,msg in messages %}
+    <div class="flash flash-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()">✕</button></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       DASHBOARD
+  ══════════════════════════════════════════════════════════════════════════ -->
+  {% if not view or view == 'dashboard' %}
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🖼️</div>
+      <div class="stat-data"><span class="stat-big">{{ stats.total_photos }}</span><span class="stat-lbl">Total Photos</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👤</div>
+      <div class="stat-data"><span class="stat-big">{{ stats.total_persons }}</span><span class="stat-lbl">People Found</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📧</div>
+      <div class="stat-data"><span class="stat-big">{{ stats.total_deliveries }}</span><span class="stat-lbl">Emails Sent</span></div>
+    </div>
+  </div>
+
+  <!-- People & Folders -->
+  <section class="section-block">
+    <div class="block-header">
+      <h2>👥 People &amp; Folders</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-sm-outline" onclick="openModal('createFolderModal')">➕ New Folder</button>
+        <a class="link-sm" href="{{ url_for('main.persons_page') }}">View all →</a>
+      </div>
+    </div>
+    {% if persons %}
+    <div class="persons-grid">
+      {% for p in persons[:12] %}
+      <div class="person-card">
+        <a href="{{ url_for('main.person_photos', person_id=p.id) }}" class="pcard-link">
+          <div class="pcard-thumb">
+            {% if p.preview %}
+            <img src="{{ p.preview }}" alt="{{ p.name }}" loading="lazy"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="pcard-ph" style="display:none">👤</div>
+            {% else %}
+            <div class="pcard-ph">👤</div>
+            {% endif %}
+            <div class="pcard-count">{{ p.photo_count }} photo{{ 's' if p.photo_count!=1 else '' }}</div>
+          </div>
+          <div class="pcard-body">
+            <div class="pcard-name" title="{{ p.name }}">{{ p.name }}</div>
+            <div class="pcard-sub">{{ p.folder_name }}</div>
+          </div>
+        </a>
+        <div class="pcard-actions">
+          <button class="pact rename" onclick="openRenameModal('{{ p.id }}','{{ p.name|e }}')">✏️</button>
+          <button class="pact email"  onclick="openEmailModal('{{ p.id }}','{{ p.name|e }}')">📧</button>
+          <button class="pact del"    onclick="confirmDeleteFolder('{{ p.id }}','{{ p.name|e }}')">🗑️</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <p>No people detected yet. Upload photos to get started!</p>
+      <button class="btn-primary" onclick="openModal('uploadModal')">Upload Photos</button>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Recent Uploads -->
+  {% if stats.recent_photos %}
+  <section class="section-block">
+    <div class="block-header"><h2>🖼️ Recent Uploads</h2></div>
+    <div class="recent-grid">
+      {% for photo in stats.recent_photos %}
+      <div class="recent-card" onclick="openLightbox('{{ photo.url }}')">
+        <img src="{{ photo.url }}" alt="{{ photo.filename }}" loading="lazy"
+             onerror="this.parentElement.style.display='none'">
+        <div class="recent-label">{{ photo.person_name }}</div>
+        <div class="recent-hover">🔍</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       ALL FOLDERS VIEW
+  ══════════════════════════════════════════════════════════════════════════ -->
+  {% elif view == 'persons' %}
+  <div class="section-block">
+    <div class="block-header">
+      <h2>All Folders ({{ persons|length }})</h2>
+      <button class="btn-primary" onclick="openModal('createFolderModal')">➕ New Folder</button>
+    </div>
+    {% if persons %}
+    <div class="persons-grid persons-grid-lg">
+      {% for p in persons %}
+      <div class="person-card">
+        <a href="{{ url_for('main.person_photos', person_id=p.id) }}" class="pcard-link">
+          <div class="pcard-thumb">
+            {% if p.preview %}
+            <img src="{{ p.preview }}" alt="{{ p.name }}" loading="lazy"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="pcard-ph" style="display:none">👤</div>
+            {% else %}
+            <div class="pcard-ph">👤</div>
+            {% endif %}
+            <div class="pcard-count">{{ p.photo_count }} photo{{ 's' if p.photo_count!=1 else '' }}</div>
+          </div>
+          <div class="pcard-body">
+            <div class="pcard-name" title="{{ p.name }}">{{ p.name }}</div>
+            <div class="pcard-sub">{{ p.folder_name }}</div>
+            {% if p.created_at %}<div class="pcard-date">{{ p.created_at[:10] }}</div>{% endif %}
+          </div>
+        </a>
+        <div class="pcard-actions pcard-actions-full">
+          <button class="pact rename" onclick="openRenameModal('{{ p.id }}','{{ p.name|e }}')">✏️ Rename</button>
+          <button class="pact email"  onclick="openEmailModal('{{ p.id }}','{{ p.name|e }}')">📧 Email</button>
+          <button class="pact del"    onclick="confirmDeleteFolder('{{ p.id }}','{{ p.name|e }}')">🗑️ Delete</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <p>No folders yet. Upload photos or create one manually.</p>
+      <button class="btn-primary" onclick="openModal('createFolderModal')">Create Folder</button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SINGLE FOLDER / PHOTO GALLERY VIEW
+  ══════════════════════════════════════════════════════════════════════════ -->
+  {% elif view == 'person_photos' %}
+  <div class="folder-header">
+    <a class="back-link" href="{{ url_for('main.persons_page') }}">← All Folders</a>
+    {% if person %}
+    <div class="folder-title-row">
+      <div>
+        <h2 class="folder-title">{{ person.name }}</h2>
+        <span class="photo-badge">{{ photos|length }} photo{{ 's' if photos|length!=1 else '' }}</span>
+      </div>
+      <div class="folder-header-btns">
+        <button class="btn-sm-outline" onclick="openRenameModal('{{ person.id }}','{{ person.name|e }}')">✏️ Rename</button>
+        <button class="btn-sm-outline" onclick="openEmailModal('{{ person.id }}','{{ person.name|e }}')">📧 Email All</button>
+        <button class="btn-sm-danger"  onclick="confirmDeleteFolder('{{ person.id }}','{{ person.name|e }}')">🗑️ Delete Folder</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if photos %}
+  <div class="gallery-grid">
+    {% for photo in photos %}
+    <div class="gallery-item">
+      <!-- Image — clicking opens lightbox -->
+      <img src="{{ photo.url }}" alt="{{ photo.filename }}" loading="lazy"
+           onclick="openLightbox('{{ photo.url }}')"
+           onerror="this.parentElement.classList.add('img-broken')">
+      <!-- Action bar always visible at bottom -->
+      <div class="gallery-actions">
+        <button class="gact view"   title="View"   onclick="openLightbox('{{ photo.url }}')">🔍</button>
+        <button class="gact move"   title="Move"   onclick="openMoveModal('{{ person.id if person else '' }}','{{ photo.filename|e }}')">📂</button>
+        <button class="gact delete" title="Delete" onclick="confirmDeletePhoto('{{ person.id if person else '' }}','{{ photo.filename|e }}')">🗑️</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state" style="margin:40px auto">
+    <div class="empty-icon">🖼️</div>
+    <p>No photos in this folder yet.</p>
+  </div>
+  {% endif %}
+
+  {% endif %}
+  <!-- end views -->
+
+</div><!-- /main-wrapper -->
+
+
+<!-- ══ AI CHAT PANEL ════════════════════════════════════════════════════════ -->
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="chat-dot"></div>
+      <div>
+        <div class="chat-title">🤖 AI Assistant</div>
+        <div class="chat-status" id="chatStatus">Ready</div>
+      </div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-chips">
+    <button class="chip" onclick="quickSend('List all my folders')">📁 Folders</button>
+    <button class="chip" onclick="quickSend('How many people are detected?')">🔢 Count</button>
+    <button class="chip" onclick="quickSend('Who is in my collection?')">👥 Who?</button>
+  </div>
+  <div class="chat-msgs" id="chatMessages">
+    <div class="cmsg bot">
+      <span class="cavatar">🤖</span>
+      <div class="cbubble">
+        Hi! Try:<br>
+        👉 <em>"Show photos of Mom"</em><br>
+        👉 <em>"List all folders"</em><br>
+        👉 <em>"Send Dad's photos to email@example.com"</em>
+      </div>
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" class="chat-input" placeholder="Ask anything…"
+           onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-send" id="chatSendBtn" onclick="sendChat()">
+      <span id="chatSendIcon">➤</span>
+    </button>
+  </div>
+</div>
+
+
+<!-- ══ MODALS ═══════════════════════════════════════════════════════════════ -->
+
+<!-- Upload -->
+<div class="moverlay" id="uploadModal" onclick="closeModal('uploadModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>📤 Upload Photos</h3><button onclick="closeModal('uploadModal')">✕</button></div>
+    <div class="mbody">
+      <form action="{{ url_for('main.upload_photo') }}" method="POST" enctype="multipart/form-data">
+        <div class="drop-zone" id="dropZone"
+             onclick="document.getElementById('fileInput').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleDrop(event)">
+          <div style="font-size:2.5rem">☁️</div>
+          <p><strong>Click to browse</strong> or drag &amp; drop</p>
+          <small style="color:var(--muted)">JPG · PNG · WEBP · GIF — max 50 MB</small>
+          <input type="file" id="fileInput" name="photos" multiple accept="image/*"
+                 style="display:none" onchange="previewFiles(this.files)">
+        </div>
+        <div id="filePreviewRow" class="fprow"></div>
+        <p id="uploadInfo" style="font-size:.83rem;color:var(--muted);margin-top:6px"></p>
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('uploadModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Upload &amp; Analyze</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Create Folder -->
+<div class="moverlay" id="createFolderModal" onclick="closeModal('createFolderModal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>➕ Create Folder</h3><button onclick="closeModal('createFolderModal')">✕</button></div>
+    <div class="mbody">
+      <form action="{{ url_for('main.create_folder_route') }}" method="POST">
+        <div class="fgroup">
+          <label>Folder Name</label>
+          <input type="text" name="folder_name" placeholder="e.g. Family Trip, Birthday 2024" required autofocus>
+        </div>
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('createFolderModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Rename -->
+<div class="moverlay" id="renameModal" onclick="closeModal('renameModal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>✏️ Rename</h3><button onclick="closeModal('renameModal')">✕</button></div>
+    <div class="mbody">
+      <form id="renameForm" method="POST">
+        <div class="fgroup">
+          <label>Current name: <strong id="renameCurrentName" style="color:var(--primary)"></strong></label>
+        </div>
+        <div class="fgroup">
+          <label>New Name</label>
+          <input type="text" name="name" id="renameInput" placeholder="Enter new name" required>
+        </div>
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('renameModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Email -->
+<div class="moverlay" id="emailModal" onclick="closeModal('emailModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>📧 Send Photos by Email</h3><button onclick="closeModal('emailModal')">✕</button></div>
+    <div class="mbody">
+      <form action="{{ url_for('main.send_email_route') }}" method="POST">
+        <input type="hidden" name="person_id" id="emailPersonId">
+        <div class="fgroup">
+          <label>Sending photos of: <strong id="emailPersonName" style="color:var(--primary)"></strong></label>
+        </div>
+        <div class="fgroup">
+          <label>Recipient Email</label>
+          <input type="email" name="recipient_email" placeholder="recipient@example.com" required>
+        </div>
+        <div class="fgroup">
+          <label>Message (optional)</label>
+          <textarea name="message" rows="3" placeholder="Personal note…"></textarea>
+        </div>
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('emailModal')">Cancel</button>
+          <button type="submit" class="btn-primary">📧 Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Folder -->
+<div class="moverlay" id="deleteFolderModal" onclick="closeModal('deleteFolderModal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>🗑️ Delete Folder</h3><button onclick="closeModal('deleteFolderModal')">✕</button></div>
+    <div class="mbody">
+      <p>Delete folder <strong id="deleteFolderName" style="color:var(--danger)"></strong>?</p>
+      <p style="color:var(--muted);font-size:.85rem;margin-top:8px">⚠️ All photos inside will be permanently removed.</p>
+      <form id="deleteFolderForm" method="POST">
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('deleteFolderModal')">Cancel</button>
+          <button type="submit" class="btn-danger">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Photo -->
+<div class="moverlay" id="deletePhotoModal" onclick="closeModal('deletePhotoModal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>🗑️ Delete Photo</h3><button onclick="closeModal('deletePhotoModal')">✕</button></div>
+    <div class="mbody">
+      <p>Remove this photo from the folder?</p>
+      <p style="color:var(--muted);font-size:.83rem;margin-top:6px">Copies in other folders remain intact.</p>
+      <form id="deletePhotoForm" method="POST">
+        <input type="hidden" name="filename" id="deletePhotoFilename">
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('deletePhotoModal')">Cancel</button>
+          <button type="submit" class="btn-danger">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Move Photo -->
+<div class="moverlay" id="movePhotoModal" onclick="closeModal('movePhotoModal')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>📂 Move Photo</h3><button onclick="closeModal('movePhotoModal')">✕</button></div>
+    <div class="mbody">
+      <form id="movePhotoForm" method="POST">
+        <input type="hidden" name="filename" id="movePhotoFilename">
+        <div class="fgroup">
+          <label>Destination Folder</label>
+          <select name="dest_person_id" id="moveDestSelect" required>
+            <option value="">— Select a folder —</option>
+            {% for p in persons %}
+            <option value="{{ p.id }}">{{ p.name }} ({{ p.photo_count }} photos)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fgroup" style="flex-direction:row;align-items:center;gap:8px">
+          <input type="checkbox" name="keep_copy" value="1" id="keepCopy" style="width:auto">
+          <label for="keepCopy" style="font-weight:400;cursor:pointer;margin:0">Keep copy in current folder</label>
+        </div>
+        <div class="mfoot">
+          <button type="button" class="btn-outline" onclick="closeModal('movePhotoModal')">Cancel</button>
+          <button type="submit" class="btn-primary">📂 Move</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lbImg" src="" alt="">
+</div>
+
+
+<script>
+/* ── Sidebar / chat ──────────────────────────────────────────────────────── */
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+function toggleChat()   { document.getElementById('chatPanel').classList.toggle('open'); }
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  closeLightbox();
+  ['uploadModal','createFolderModal','renameModal','emailModal',
+   'deleteFolderModal','deletePhotoModal','movePhotoModal'].forEach(closeModal);
+});
+
+/* ── Upload drag & drop ──────────────────────────────────────────────────── */
+function handleDrop(e){
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  document.getElementById('fileInput').files = e.dataTransfer.files;
+  previewFiles(e.dataTransfer.files);
+}
+function previewFiles(files){
+  const row=document.getElementById('filePreviewRow');
+  document.getElementById('uploadInfo').textContent=files.length+' file(s) selected';
+  row.innerHTML='';
+  Array.from(files).slice(0,8).forEach(file=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      const d=document.createElement('div'); d.className='fp-item';
+      d.innerHTML=`<img src="${ev.target.result}"><span>${file.name.slice(0,15)}</span>`;
+      row.appendChild(d);
+    }; r.readAsDataURL(file);
+  });
+}
+
+/* ── Rename ──────────────────────────────────────────────────────────────── */
+function openRenameModal(id,name){
+  document.getElementById('renameCurrentName').textContent=name;
+  document.getElementById('renameInput').value=name;
+  document.getElementById('renameForm').action=`/person/${id}/rename`;
+  openModal('renameModal');
+  setTimeout(()=>document.getElementById('renameInput').select(),80);
+}
+
+/* ── Email ───────────────────────────────────────────────────────────────── */
+function openEmailModal(id,name){
+  document.getElementById('emailPersonId').value=id;
+  document.getElementById('emailPersonName').textContent=name;
+  openModal('emailModal');
+}
+
+/* ── Delete folder ───────────────────────────────────────────────────────── */
+function confirmDeleteFolder(id,name){
+  document.getElementById('deleteFolderName').textContent=name;
+  document.getElementById('deleteFolderForm').action=`/person/${id}/delete`;
+  openModal('deleteFolderModal');
+}
+
+/* ── Delete photo ────────────────────────────────────────────────────────── */
+function confirmDeletePhoto(personId,filename){
+  document.getElementById('deletePhotoFilename').value=filename;
+  document.getElementById('deletePhotoForm').action=`/person/${personId}/photo/delete`;
+  openModal('deletePhotoModal');
+}
+
+/* ── Move photo ──────────────────────────────────────────────────────────── */
+function openMoveModal(personId,filename){
+  document.getElementById('movePhotoFilename').value=filename;
+  document.getElementById('movePhotoForm').action=`/person/${personId}/photo/move`;
+  openModal('movePhotoModal');
+}
+
+/* ── Lightbox ────────────────────────────────────────────────────────────── */
+function openLightbox(src){
+  document.getElementById('lbImg').src=src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lbImg').src='';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   AI CHAT
+══════════════════════════════════════════════════════════════════════════════ */
+const CH=[]; let busy=false;
+
+function quickSend(t){ document.getElementById('chatInput').value=t; sendChat(); }
+
+async function sendChat(){
+  if(busy) return;
+  const inp=document.getElementById('chatInput'), msg=inp.value.trim();
+  if(!msg) return;
+  inp.value=''; busy=true; setStatus('Thinking…'); setBusy(true);
+  addUserMsg(msg); CH.push({role:'user',content:msg});
+  const ty=addTyping();
+  let data={};
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg,history:CH})});
+    data=await r.json();
+  }catch(e){ data={reply:'❌ Network error.',photos:[],folders:[]}; }
+  ty.remove(); CH.push({role:'assistant',content:data.reply||''});
+  addBotMsg(data.reply||'…', data.photos||[], data.folders||[]);
+  setStatus('Ready'); setBusy(false); busy=false; scrollChat();
+}
+
+function addUserMsg(t){
+  const d=document.createElement('div'); d.className='cmsg user';
+  d.innerHTML=`<div class="cbubble user-b">${esc(t)}</div>`;
+  chatEl().appendChild(d); scrollChat();
+}
+
+function addTyping(){
+  const d=document.createElement('div'); d.className='cmsg bot';
+  d.innerHTML=`<span class="cavatar">🤖</span><div class="cbubble typing">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+  chatEl().appendChild(d); scrollChat(); return d;
+}
+
+function addBotMsg(text,photos,folders){
+  const d=document.createElement('div'); d.className='cmsg bot';
+  let h=`<span class="cavatar">🤖</span><div class="cmsg-body"><div class="cbubble">${md(text)}</div>`;
+
+  if(folders&&folders.length){
+    h+=`<div class="cf-grid">`;
+    folders.forEach(f=>{
+      const img=f.preview?`<img src="${f.preview}" class="cf-img" onerror="this.style.display='none'">`:`<div class="cf-ph">👤</div>`;
+      h+=`<div class="cf-card">
+        <div class="cf-thumb">${img}</div>
+        <div class="cf-info"><div class="cf-name">${esc(f.name)}</div><div class="cf-cnt">${f.photo_count} photos</div></div>
+        <div class="cf-btns">
+          <button class="chip-sm" onclick="quickSend('Show photos of ${esc(f.name)}')">🔍 View</button>
+          <button class="chip-sm" onclick="openEmailModal('${f.id}','${esc(f.name)}')">📧</button>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  if(photos&&photos.length){
+    h+=`<div class="cp-section">
+      <div class="cp-head">
+        <span class="cp-label">📁 ${esc(photos[0].person_name)}</span>
+        <span class="cp-badge">${photos.length} photo${photos.length!==1?'s':''}</span>
+        <button class="chip-sm" style="margin-left:auto" onclick="openEmailModal('${photos[0].person_id}','${esc(photos[0].person_name)}')">📧 Email All</button>
+      </div>
+      <div class="cp-grid">`;
+    photos.forEach(p=>{
+      h+=`<div class="cp-item" onclick="openLightbox('${p.url}')">
+        <img src="${p.url}" alt="${esc(p.filename)}" loading="lazy"
+             onerror="this.parentElement.classList.add('img-broken')">
+        <div class="cp-ov">🔍</div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  h+=`</div>`;
+  d.innerHTML=h; chatEl().appendChild(d); scrollChat();
+}
+
+function chatEl(){ return document.getElementById('chatMessages'); }
+function scrollChat(){ const e=chatEl(); e.scrollTop=e.scrollHeight; }
+function setStatus(t){ document.getElementById('chatStatus').textContent=t; }
+function setBusy(b){ const btn=document.getElementById('chatSendBtn'),
+  ico=document.getElementById('chatSendIcon'); btn.disabled=b; ico.textContent=b?'⏳':'➤'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function md(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+  .replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>'); }
+
+/* auto-dismiss flashes */
+setTimeout(()=>{ document.querySelectorAll('.flash').forEach(el=>{
+  el.style.transition='opacity .4s'; el.style.opacity='0';
+  setTimeout(()=>el.remove(),400); }); },4000);
+</script>
+</body>
+</html>

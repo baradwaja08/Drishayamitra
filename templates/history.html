@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery History – Drishyamitra</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="brand-icon">👁️</span>
+      <span class="brand-name">Drishyamitra</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('main.dashboard') }}" class="nav-item">🏠 <span>Dashboard</span></a>
+      <a href="{{ url_for('main.persons_page') }}" class="nav-item">👥 <span>People & Folders</span></a>
+      <a href="{{ url_for('main.history') }}" class="nav-item active">📜 <span>Delivery History</span></a>
+      <a href="{{ url_for('main.landing') }}" class="nav-item">🌐 <span>Home Page</span></a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar-sm">{{ user_name[0]|upper if user_name else 'U' }}</div>
+      <div class="user-info">
+        <span class="user-name-sm">{{ user_name or 'User' }}</span>
+        <a href="{{ url_for('auth.logout') }}" class="logout-link">Logout</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title">📜 Delivery History</h1>
+      <div class="topbar-actions">
+        <a href="{{ url_for('main.dashboard') }}" class="btn-outline">← Dashboard</a>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()">✕</button></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="🔍 Search by name or email…"
+             oninput="filterRows()" class="search-input">
+      <select id="statusFilter" onchange="filterRows()" class="filter-select">
+        <option value="">All Statuses</option>
+        <option value="sent">Sent</option>
+        <option value="failed">Failed</option>
+      </select>
+    </div>
+
+    <!-- History table -->
+    {% if deliveries %}
+    <div class="table-wrapper">
+      <table class="history-table" id="historyTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Person</th>
+            <th>Recipient Email</th>
+            <th>Photos Sent</th>
+            <th>Status</th>
+            <th>Date & Time</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in deliveries %}
+          <tr class="history-row"
+              data-name="{{ d.persons.name if d.persons else '' }}"
+              data-email="{{ d.recipient_email }}"
+              data-status="{{ d.status }}">
+            <td class="row-num">{{ loop.index }}</td>
+            <td>
+              <div class="person-cell">
+                <div class="person-dot">{{ (d.persons.name[0]|upper) if d.persons else '?' }}</div>
+                <span>{{ d.persons.name if d.persons else 'Unknown' }}</span>
+              </div>
+            </td>
+            <td class="email-cell">{{ d.recipient_email }}</td>
+            <td>
+              <span class="photo-badge">{{ d.photo_count or 0 }} photos</span>
+            </td>
+            <td>
+              <span class="status-badge status-{{ d.status }}">
+                {{ '✅' if d.status == 'sent' else '❌' }} {{ d.status|capitalize }}
+              </span>
+            </td>
+            <td class="date-cell">
+              {{ d.delivered_at[:16].replace('T', ' ') if d.delivered_at else '—' }}
+            </td>
+            <td class="action-cell">
+              <!-- Re-send button opens email modal pre-filled -->
+              {% if d.persons %}
+              <button class="btn-outline-sm"
+                      onclick="openResendModal('{{ d.person_id }}','{{ d.persons.name }}','{{ d.recipient_email }}')">
+                📧 Re-send
+              </button>
+              {% endif %}
+              {% if d.status == 'failed' and d.message %}
+              <span class="error-hint" title="{{ d.message }}">⚠️</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="history-summary">
+      <span>Total: <strong>{{ deliveries|length }}</strong> deliveries</span>
+      <span>Sent: <strong>{{ deliveries|selectattr('status','equalto','sent')|list|length }}</strong></span>
+      <span>Failed: <strong>{{ deliveries|selectattr('status','equalto','failed')|list|length }}</strong></span>
+    </div>
+
+    {% else %}
+    <div class="empty-state page-empty">
+      <div class="empty-icon">📬</div>
+      <h3>No Delivery History Yet</h3>
+      <p>When you email photos to someone, all records will appear here.</p>
+      <a href="{{ url_for('main.dashboard') }}" class="btn-primary">Go to Dashboard</a>
+    </div>
+    {% endif %}
+
+  </div><!-- /main-wrapper -->
+
+  <!-- ═══ RESEND EMAIL MODAL ════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="resendModal" onclick="closeResendModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>📧 Re-send Photos</h3>
+        <button onclick="closeResendModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form action="{{ url_for('main.send_email_route') }}" method="POST">
+          <input type="hidden" name="person_id" id="resendPersonId">
+          <div class="form-group">
+            <label>Person: <strong id="resendPersonName"></strong></label>
+          </div>
+          <div class="form-group">
+            <label>Recipient Email</label>
+            <input type="email" name="recipient_email" id="resendRecipient"
+                   placeholder="recipient@example.com" required>
+          </div>
+          <div class="form-group">
+            <label>Custom Message (optional)</label>
+            <textarea name="message" rows="3"
+                      placeholder="Optional note to include in the email…"></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-outline" onclick="closeResendModal()">Cancel</button>
+            <button type="submit" class="btn-primary">📧 Send Photos</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+    function openResendModal(personId, personName, recipientEmail) {
+      document.getElementById('resendPersonId').value = personId;
+      document.getElementById('resendPersonName').textContent = personName;
+      document.getElementById('resendRecipient').value = recipientEmail;
+      document.getElementById('resendModal').classList.add('open');
+    }
+    function closeResendModal() {
+      document.getElementById('resendModal').classList.remove('open');
+    }
+
+    function filterRows() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+      document.querySelectorAll('.history-row').forEach(row => {
+        const matchText = row.dataset.name.toLowerCase().includes(search) ||
+                          row.dataset.email.toLowerCase().includes(search);
+        const matchStatus = !status || row.dataset.status === status;
+        row.style.display = (matchText && matchStatus) ? '' : 'none';
+      });
+    }
+
+    setTimeout(() => {
+      document.querySelectorAll('.flash').forEach(el => el.style.opacity = '0');
+    }, 4000);
+  </script>
+</body>
+</html>

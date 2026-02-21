@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drishyamitra – AI Photo Management</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="landing-body">
+
+  <!-- ═══ NAVBAR ═══════════════════════════════════════════════════════════ -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">👁️</span>
+      <span class="brand-name">Drishyamitra</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#scenarios">Use Cases</a></li>
+      <li><a href="#team">Team</a></li>
+      <li><a href="#tech">Tech Stack</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="{{ url_for('auth.auth_page', tab='login') }}" class="btn-outline">Log In</a>
+      <a href="{{ url_for('auth.auth_page', tab='signup') }}" class="btn-primary">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- ═══ HERO ══════════════════════════════════════════════════════════════ -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">🚀 AI-Powered · Version {{ config.PROJECT_VERSION }}</div>
+      <h1 class="hero-title">
+        Your Photos, <br>
+        <span class="gradient-text">Intelligently Organized</span>
+      </h1>
+      <p class="hero-subtitle">
+        Drishyamitra uses deep learning face recognition to automatically sort, label, 
+        and deliver your photos — so you can stop searching and start remembering.
+      </p>
+      <div class="hero-actions">
+        <a href="{{ url_for('auth.auth_page', tab='signup') }}" class="btn-primary btn-lg">
+          Start for Free →
+        </a>
+        <a href="#how-it-works" class="btn-ghost btn-lg">See How It Works</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-number">99%</span>
+          <span class="stat-label">Recognition Accuracy</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">3s</span>
+          <span class="stat-label">Avg. Process Time</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">Auto</span>
+          <span class="stat-label">Folder Creation</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="phone-mockup">
+        <div class="mockup-screen">
+          <div class="mockup-header">
+            <span class="mockup-dot red"></span>
+            <span class="mockup-dot yellow"></span>
+            <span class="mockup-dot green"></span>
+          </div>
+          <div class="mockup-content">
+            <div class="folder-grid">
+              <div class="folder-card purple">👤 Mom<br><small>142 photos</small></div>
+              <div class="folder-card blue">👤 Dad<br><small>98 photos</small></div>
+              <div class="folder-card green">👤 Ananya<br><small>211 photos</small></div>
+              <div class="folder-card orange">👤 Grandma<br><small>67 photos</small></div>
+              <div class="folder-card pink">👤 Rohan<br><small>33 photos</small></div>
+              <div class="folder-card teal">👤 Unknown<br><small>12 photos</small></div>
+            </div>
+            <div class="ai-bubble">
+              💬 "Show photos of Grandma from Diwali"
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURES ══════════════════════════════════════════════════════════ -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">✨ Features</span>
+        <h2>Everything Your Photos Need</h2>
+        <p>From detection to delivery, all in one intelligent platform.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#ede9fe">🔍</div>
+          <h3>AI Face Detection</h3>
+          <p>DeepFace with Facenet512 + RetinaFace detects every face across thousands of photos with 99%+ accuracy.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#dbeafe">📁</div>
+          <h3>Auto Folder Creation</h3>
+          <p>A new folder is automatically created for every unique person detected. Photos of multiple people go to multiple folders.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#dcfce7">💬</div>
+          <h3>AI Chat Assistant</h3>
+          <p>Ask naturally: "Show me photos of Priya" or "Send John's pictures to email@example.com" — it just works.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#fef9c3">📧</div>
+          <h3>Email Delivery</h3>
+          <p>Send curated photo collections directly via Gmail with one click or a chat command.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#fee2e2">📜</div>
+          <h3>Delivery History</h3>
+          <p>Full history of every photo batch sent, with timestamps, recipients, and the ability to re-send anytime.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#e0f2fe">🔐</div>
+          <h3>Secure & Private</h3>
+          <p>Token-based auth, encrypted password storage, user-isolated folders. Your memories stay yours.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ HOW IT WORKS ══════════════════════════════════════════════════════ -->
+  <section class="section bg-dark" id="how-it-works">
+    <div class="container">
+      <div class="section-header light">
+        <span class="section-badge">⚙️ Process</span>
+        <h2>How Drishyamitra Works</h2>
+        <p>From upload to organized folder in under 5 seconds.</p>
+      </div>
+      <div class="steps-container">
+        <div class="step">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <h3>Upload Photos</h3>
+            <p>Drag and drop single or batch photos. Any format — JPG, PNG, WEBP supported.</p>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <h3>AI Scans Faces</h3>
+            <p>DeepFace extracts 512-dimension embeddings from each detected face using RetinaFace.</p>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <h3>Match or Create Folder</h3>
+            <p>Match found → photo goes to existing folder. No match → new folder auto-created.</p>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-number">04</div>
+          <div class="step-content">
+            <h3>Retrieve & Share</h3>
+            <p>Use the AI chat or gallery to find and send photos instantly via email.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ USE CASE SCENARIOS ════════════════════════════════════════════════ -->
+  <section class="section" id="scenarios">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">💡 Use Cases</span>
+        <h2>Who Uses Drishyamitra?</h2>
+      </div>
+      <div class="scenarios-grid">
+        <div class="scenario-card">
+          <div class="scenario-emoji">👨‍👩‍👧‍👦</div>
+          <h3>Family Photo Management</h3>
+          <p>Riya has 15,000+ photos scattered everywhere. Drishyamitra organizes them all by family member automatically. "Show Grandma's Diwali 2022 photos" — done instantly.</p>
+          <div class="scenario-tag">Personal Use</div>
+        </div>
+        <div class="scenario-card">
+          <div class="scenario-emoji">📸</div>
+          <h3>Event Photographer Workflow</h3>
+          <p>Aarav shoots weddings with thousands of photos. AI groups them by person automatically. Client delivery via email takes seconds, not days.</p>
+          <div class="scenario-tag">Professional</div>
+        </div>
+        <div class="scenario-card">
+          <div class="scenario-emoji">🏢</div>
+          <h3>Corporate Media Management</h3>
+          <p>Marketing teams find campaign photos instantly. Neha asks: "Find Rohan and Priya from the Client A launch" — retrieved and emailed in one command.</p>
+          <div class="scenario-tag">Enterprise</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ TECH STACK ════════════════════════════════════════════════════════ -->
+  <section class="section bg-subtle" id="tech">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">🛠️ Technology</span>
+        <h2>Built With Best-in-Class AI</h2>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-item">
+          <div class="tech-logo">🐍</div>
+          <div class="tech-name">Flask</div>
+          <div class="tech-desc">Backend API</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-logo">🧠</div>
+          <div class="tech-name">DeepFace</div>
+          <div class="tech-desc">Face Recognition</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-logo">⚡</div>
+          <div class="tech-name">Groq LLM</div>
+          <div class="tech-desc">AI Chat Assistant</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-logo">🗄️</div>
+          <div class="tech-name">Supabase</div>
+          <div class="tech-desc">Database & Storage</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-logo">📧</div>
+          <div class="tech-name">Gmail API</div>
+          <div class="tech-desc">Email Delivery</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-logo">🔬</div>
+          <div class="tech-name">Facenet512</div>
+          <div class="tech-desc">Face Embeddings</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ TEAM ══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="team">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">👥 The Team</span>
+        <h2>Built by Passionate Developers</h2>
+        <p>A dedicated team combining expertise in AI, backend, and design to build Drishyamitra.</p>
+      </div>
+      <div class="team-grid">
+        {% for member in team %}
+        <div class="team-card">
+          <div class="team-avatar" style="background: var(--color-{{ loop.index }})">
+            {{ member.avatar }}
+          </div>
+          <h3 class="team-name">{{ member.name }}</h3>
+          <div class="team-role">{{ member.role }}</div>
+          <p class="team-bio">{{ member.bio }}</p>
+          <div class="team-skills">
+            {% for skill in member.skills %}
+            <span class="skill-tag">{{ skill }}</span>
+            {% endfor %}
+          </div>
+          <div class="team-links">
+            <a href="mailto:{{ member.email }}" class="team-link" title="Email">✉️</a>
+            <a href="{{ member.github }}" target="_blank" class="team-link" title="GitHub">🐙</a>
+            <a href="{{ member.linkedin }}" target="_blank" class="team-link" title="LinkedIn">💼</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CTA BANNER ════════════════════════════════════════════════════════ -->
+  <section class="cta-section">
+    <div class="container cta-inner">
+      <h2>Ready to Organize Your Memories?</h2>
+      <p>Join Drishyamitra today and let AI do the sorting for you.</p>
+      <a href="{{ url_for('auth.auth_page', tab='signup') }}" class="btn-primary btn-lg">
+        Create Free Account →
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ════════════════════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon">👁️</span>
+        <span class="brand-name">Drishyamitra</span>
+        <p>AI-Powered Photo Management System</p>
+      </div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#team">Team</a>
+        <a href="{{ url_for('auth.auth_page', tab='login') }}">Login</a>
+        <a href="{{ url_for('auth.auth_page', tab='signup') }}">Sign Up</a>
+      </div>
+      <div class="footer-copy">
+        © {{ config.PROJECT_YEAR }} Drishyamitra. Built with ❤️ by the Team.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href'))
+          ?.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    // Sticky navbar
+    window.addEventListener('scroll', () => {
+      document.querySelector('.navbar').classList.toggle('scrolled', window.scrollY > 50);
+    });
+  </script>
+</body>
+</html>
